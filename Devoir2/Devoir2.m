@@ -26,9 +26,29 @@ function [But tf rf vf ] = Devoir2(ri,vi,wi)
     % ri : est la position du centre de masse du ballon
     % vi : est la vitesse du centre de masse du ballon
     % wi : est la vitesse angualire du centre de masse du ballon
-
-
-
+    
+    % Condition initiale de la simulation 
+    % q0 = [ri_x ri_y ri_z, vi_x vi_y vi_z, wi_x wi_y wi_z]
+    q0 = [ri, vi, wi];
+    
+    % Intervale de temps de la simulation
+    delta_t = 0.1;  %% a ajuster
+    
+    % Nombre d'iteration de la simulation
+    nb_iterator = 10; %% a ajuster
+    
+    % Temps de demarrage de la simulation
+    t0 = 0;
+    
+    
+    % Realisation de la simulation 
+    for n =  2 : nb_iteration + 1
+        q0 = SEDRK4t0(q0,t0,delta_t,g)
+        tO = t0 + delta_t;
+    end
+    
+    
+    
 end
 
 
