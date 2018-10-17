@@ -66,6 +66,7 @@ function [But tf rf vf ] = Devoir2(ri,vi,wi)
     while abs(norm(q_tf_1(1:3))-norm(q0(1:3))) > precision_minimale  %|| n =  2 : nb_iteration + 1
         n = n +  1;
         delta_t = delta_t/2;
+        nb_iteration = nb_iteration * 2;
         q0 = q_tf_1;
         q_tf_1 = SEDRK4t0(q0,t0,delta_t);%,g)
         t0 = t0 + delta_t;
@@ -73,7 +74,7 @@ function [But tf rf vf ] = Devoir2(ri,vi,wi)
         tf = t0;
         rf = q0(1:3);
         vf = q0(4:6);
-        if(n > 10)            
+        if(n > nb_iteration)            
             break;
         end
     end
@@ -97,7 +98,7 @@ function goal= FinSimulation(positionBallon)
     global but_max_y
     global but_hauteur 
     global rayon_ballon
-    
+    goal = 19;
     % Cas o� le ballon entre dans le but
     if (positionBallon(1) <= terrain_min_x || positionBallon(1) >= terrain_max_x) && ...
            (positionBallon(2) >= but_min_y && positionBallon(2) <= but_max_y)   
@@ -148,7 +149,8 @@ end
 
 function res=g(q0, ~)%t0
     global masse_ballon;
-    res = [transpose(Forces(q0)/masse_ballon), transpose(q0(4:6)), transpose([0 0 0])];
+    res = [transpose(q0(4:6)), transpose(Forces(q0)/masse_ballon), transpose([0 0 0])];
+
 end
 
 function res=Forces(q0)
