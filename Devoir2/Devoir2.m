@@ -51,30 +51,37 @@ function [But tf rf vf ] = Devoir2(ri,vi,wi)
     q0 = [ri, vi, wi];
     
     % Intervale de temps de la simulation
-    delta_t = 0.01;  %% a ajuster
+    delta_t = 0.0001;  %% a ajuster
     
     % Nombre d'iteration de la simulation
-    nb_iteration = 10; %% a ajuster
+    nb_iteration = 1; %% a ajuster
     
     % Temps de demarrage de la simulation
-    t0 = 0;
+    t0 = 0.0;
     
-    precision_minimale = 0.001;
-    q_tf_1 = SEDRK4t0(q0,t0,delta_t);
+    precision_minimale = [transpose([0.001, 0.001, 0.001]) transpose(Inf(1,3)) transpose(Inf(1,3))];
+    qs1 = SEDRK4t0(q0,t0,delta_t);
     n = 1;
-    % Realisation de la simulation 
-    while abs(norm(q_tf_1(1:3))-norm(q0(1:3))) > precision_minimale  %|| n =  2 : nb_iteration + 1
-        n = n +  1;
+    % Realisation de la simulation
+    [conv Err]=ErrSol(qs1,q0,precision_minimale);
+    while not(conv)
+        n = n + 1;
         delta_t = delta_t/2;
         nb_iteration = nb_iteration * 2;
-        q0 = q_tf_1;
-        q_tf_1 = SEDRK4t0(q0,t0,delta_t);%,g)
-        t0 = t0 + delta_t;
-        But = FinSimulation(q_tf_1(1:3));
-        tf = t0;
-        rf = q0(1:3);
-        vf = q0(4:6);
-        if(n > nb_iteration)            
+        qs2 = qs1;
+        t2=t0;
+        But = FinSimulation(qs2(1:3));
+        while But < -2
+            qs2=SEDRK4t0(qs2,t2,delta_t);
+            t2 = t2 + delta_t;            
+            But = FinSimulation(qs2(1:3));
+        end;
+        [conv Err]=ErrSol(qs2,qs1,precision_minimale);
+        qs1 = qs2;
+        tf = t2;
+        rf = qs1(1:3);
+        vf = qs1(4:6);
+        if(n > 10)            
             break;
         end
     end
@@ -98,7 +105,7 @@ function goal= FinSimulation(positionBallon)
     global but_max_y
     global but_hauteur 
     global rayon_ballon
-    goal = 19;
+    goal = -3;
     % Cas o� le ballon entre dans le but
     if (positionBallon(1) <= terrain_min_x || positionBallon(1) >= terrain_max_x) && ...
            (positionBallon(2) >= but_min_y && positionBallon(2) <= but_max_y)   
@@ -107,7 +114,7 @@ function goal= FinSimulation(positionBallon)
     end
     
     % Cas o� le ballon touche le sol
-    if positionBallon(3) < (terrain_sol + rayon_ballon)
+    if positionBallon(3) <= (terrain_sol + rayon_ballon)
         goal = 0;
         return;
     end
@@ -185,5 +192,18 @@ function res=Forces(q0)
     F_m = Ro_air * C_m * aire_ballon  * (norm_v^2) * (cross_w_v/norm(cross_w_v));
 
     res = Fg + F_vis + F_m;
+end
+
+function [conv Err]=ErrSol(qs1,qs0,epsilon)
+    % Verification si solution convergee
+    %   conv      : variable logique pour convergence
+    %               Err<epsilon pour chaque elements
+    %   Err       : Difference entre qs1 et qs0 
+    %   qs1       : nouvelle solution
+    %   qs0       : ancienne solution
+    %   epsilon   : pr?cision pour chaque variable
+    Err = qs1-qs0;
+    conv = all(abs(Err) < epsilon);
+    conv = conv(1);
 end
 
