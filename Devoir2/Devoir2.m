@@ -54,37 +54,45 @@ function [But tf rf vf ] = Devoir2(ri,vi,wi)
     delta_t = 0.0001;  %% a ajuster
     
     % Nombre d'iteration de la simulation
-    nb_iteration = 1; %% a ajuster
+    %nb_iteration = 1; %% a ajuster
     
     % Temps de demarrage de la simulation
     t0 = 0.0;
     
     precision_minimale = [transpose([0.001, 0.001, 0.001]) transpose(Inf(1,3)) transpose(Inf(1,3))];
-    qs1 = SEDRK4t0(q0,t0,delta_t);
-    n = 1;
-    % Realisation de la simulation
+    m=1;nbi=1;
+    % Solution avec m=1
+    qs1=SEDRK4t0(q0,t0,delta_t);
+    But = FinSimulation(qs1(1:3));
+    t2=t0;
+    while But < -2
+        qs1=SEDRK4t0(qs1,t2,delta_t);
+        t2=t2+delta_t;
+        But = FinSimulation(qs1(1:3));
+    end;
     [conv Err]=ErrSol(qs1,q0,precision_minimale);
+    qs2=qs1;
+    % Iteration avec m>1
     while not(conv)
-        n = n + 1;
-        delta_t = delta_t/2;
-        nb_iteration = nb_iteration * 2;
-        qs2 = qs1;
+        delta_t=delta_t/2;
+        m=m+1;
         t2=t0;
         But = FinSimulation(qs2(1:3));
         while But < -2
             qs2=SEDRK4t0(qs2,t2,delta_t);
-            t2 = t2 + delta_t;            
+            t2=t2+delta_t;
             But = FinSimulation(qs2(1:3));
         end;
         [conv Err]=ErrSol(qs2,qs1,precision_minimale);
-        qs1 = qs2;
-        tf = t2;
-        rf = qs1(1:3);
-        vf = qs1(4:6);
-        if(n > 10)            
+        qs1=qs2;
+        if m>10
             break;
-        end
-    end
+        end;
+    end;
+    qs=qs2+Err/15;
+    tf = t2;
+    rf = qs(1:3);
+    vf = qs(4:6);
     
     
     
@@ -106,6 +114,13 @@ function goal= FinSimulation(positionBallon)
     global but_hauteur 
     global rayon_ballon
     goal = -3;
+     % Cas o� le ballon touche un des montants
+    if (intersectLineSphere([[0 but_min_y 0], [0 but_min_y but_hauteur]], positionBallon, rayon_ballon) || ...
+        intersectLineSphere([[0 but_max_y 0], [0 but_max_y but_hauteur]], positionBallon, rayon_ballon) || ...
+        intersectLineSphere([[0 but_min_y but_hauteur] [0 but_max_y but_hauteur]], positionBallon, rayon_ballon))
+        goal = -1;
+        return;
+    end
     % Cas o� le ballon entre dans le but
     if (positionBallon(1) <= terrain_min_x || positionBallon(1) >= terrain_max_x) && ...
            (positionBallon(2) >= but_min_y && positionBallon(2) <= but_max_y)   
@@ -119,13 +134,7 @@ function goal= FinSimulation(positionBallon)
         return;
     end
     
-    % Cas o� le ballon touche un des montants
-    if (positionBallon(1) <= (terrain_min_x + rayon_ballon) || positionBallon(1) >= (terrain_max_x - rayon_ballon)) && ...
-            (positionBallon(2) == but_min_y || positionBallon(2) == but_max_y ...
-             || positionBallon(3) == but_hauteur)    
-        goal = -1;
-        return;
-    end
+   
     
     % Cas o� le ballon sort du terain
     if positionBallon(1) < terrain_min_x || positionBallon(1) > terrain_max_x || ...
@@ -176,10 +185,10 @@ function res=Forces(q0)
     Fg = [0, 0, -masse_ballon * gravitation];
 
     %Force de frottement visqueux
-    Re = Ro_air * norm_v * aire_ballon / Mu;
+    Re = Ro_air * norm_v * rayon_ballon / Mu;
     if Re < 100000
         C_vis = 0.235 * norm_v;
-    elseif Re < 135000 || Re > 100000
+    elseif Re < 135000 && Re > 100000
         C_vis = 0.235 * norm_v - 0.125 * norm_v *((Re - 100000)/35000);
     else
         C_vis = 0.110 * norm_v;        
@@ -206,4 +215,16 @@ function [conv Err]=ErrSol(qs1,qs0,epsilon)
     conv = all(abs(Err) < epsilon);
     conv = conv(1);
 end
+
+function res=intersectLineSphere(line, sphereCoordinates, rayon)
+    vecLine = line(4:6) - line(1:3);
+    unitVecLine = vecLine / norm(vecLine);
+    P1C = sphereCoordinates - line(1:3);           % Line from one point to center
+    v = norm(cross(unitVecLine, P1C));
+    res = (v <= rayon);
+end
+
+
+
+
 
