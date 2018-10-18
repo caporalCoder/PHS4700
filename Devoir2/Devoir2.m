@@ -60,7 +60,7 @@ function [But tf rf vf ] = Devoir2(ri,vi,wi)
     t0 = 0.0;
     
     precision_minimale = [transpose([0.001, 0.001, 0.001]) transpose(Inf(1,3)) transpose(Inf(1,3))];
-    m=1;nbi=1;
+    m=1;
     % Solution avec m=1
     qs1=SEDRK4t0(q0,t0,delta_t);
     But = FinSimulation(qs1(1:3));
@@ -76,12 +76,15 @@ function [But tf rf vf ] = Devoir2(ri,vi,wi)
     while not(conv)
         delta_t=delta_t/2;
         m=m+1;
-        t2=t0;
-        But = FinSimulation(qs2(1:3));
+        t2=t0;        
+        qs2=q0;
+        But = -3;
+        trajectory = [q0(1:3)];
         while But < -2
             qs2=SEDRK4t0(qs2,t2,delta_t);
             t2=t2+delta_t;
             But = FinSimulation(qs2(1:3));
+            trajectory=[trajectory; qs2(1:3)];
         end;
         [conv Err]=ErrSol(qs2,qs1,precision_minimale);
         qs1=qs2;
@@ -93,11 +96,36 @@ function [But tf rf vf ] = Devoir2(ri,vi,wi)
     tf = t2;
     rf = qs(1:3);
     vf = qs(4:6);
+    [x,y,z] = sphere();
+
+    s = surf(x*rayon_ballon* 5+ rf(1), y*rayon_ballon*5 + rf(2), z*rayon_ballon*5 + rf(3));
+    s.EdgeColor = 'w';
+    s.FaceColor = 'w';
+    hold on;
+    a1 = plot3(trajectory(:, 1),trajectory(:, 2),trajectory(: ,3), '-.r*');
+    DessinerTerrain();
+    axis('equal');
+    xlabel('x');
+    ylabel('y');
+    zlabel('z');
+    legend(a1, 'Trajectoire Ballon');
     
     
     
 end
-
+function DessinerTerrain()
+    global terrain_min_x
+    global terrain_max_x
+    %global terrain_min_y
+    global terrain_max_y
+    global terrain_sol
+    global but_min_y
+    global but_max_y
+    global but_hauteur  
+    patch(terrain_max_x*[0, 1, 1, 0], terrain_max_y*[0, 0, 1, 1], terrain_sol*[1, 1, 1, 1], 'green');
+    patch(terrain_min_x* [1, 1, 1, 1], (but_max_y - but_min_y)*[0, 1, 1, 0] + but_min_y, but_hauteur*[0, 0, 1, 1], 'white');
+    patch(terrain_max_x* [1, 1, 1, 1], (but_max_y - but_min_y)*[0, 1, 1, 0] + but_min_y, but_hauteur*[0, 0, 1, 1], 'white');
+end
 
 function goal= FinSimulation(positionBallon)
     % Cette fontion permet de terminer le status d'une simulation
@@ -134,8 +162,6 @@ function goal= FinSimulation(positionBallon)
         return;
     end
     
-   
-    
     % Cas o� le ballon sort du terain
     if positionBallon(1) < terrain_min_x || positionBallon(1) > terrain_max_x || ...
             positionBallon(2) < terrain_min_y || positionBallon(2) > terrain_max_y
@@ -166,7 +192,6 @@ end
 function res=g(q0, ~)%t0
     global masse_ballon;
     res = [transpose(q0(4:6)), transpose(Forces(q0)/masse_ballon), transpose([0 0 0])];
-
 end
 
 function res=Forces(q0)
