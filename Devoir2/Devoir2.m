@@ -51,7 +51,7 @@ function [But tf rf vf ] = Devoir2(ri,vi,wi)
     q0 = [ri, vi, wi];
     
     % Intervale de temps de la simulation
-    delta_t = 0.0001;  %% a ajuster
+    delta_t = 0.1;  %% a ajuster
     
     % Nombre d'iteration de la simulation
     %nb_iteration = 1; %% a ajuster
@@ -98,7 +98,7 @@ function [But tf rf vf ] = Devoir2(ri,vi,wi)
     vf = qs(4:6);
     [x,y,z] = sphere();
 
-    s = surf(x*rayon_ballon* 5+ rf(1), y*rayon_ballon*5 + rf(2), z*rayon_ballon*5 + rf(3));
+    s = surf(x*rayon_ballon+ rf(1), y*rayon_ballon + rf(2), z*rayon_ballon + rf(3));
     s.EdgeColor = 'w';
     s.FaceColor = 'w';
     hold on;
@@ -149,18 +149,19 @@ function goal= FinSimulation(positionBallon)
         goal = -1;
         return;
     end
-    % Cas o� le ballon entre dans le but
-    if (positionBallon(1) <= terrain_min_x || positionBallon(1) >= terrain_max_x) && ...
-           (positionBallon(2) >= but_min_y && positionBallon(2) <= but_max_y)   
-        goal = 1;
-        return;      
-    end
-    
-    % Cas o� le ballon touche le sol
+     % Cas o� le ballon touche le sol
     if positionBallon(3) <= (terrain_sol + rayon_ballon)
         goal = 0;
         return;
     end
+    % Cas o� le ballon entre dans le but
+    if (positionBallon(1) <= terrain_min_x || positionBallon(1) >= terrain_max_x) && ...
+           (positionBallon(2) >= but_min_y && positionBallon(2) <= but_max_y && positionBallon(3) <= but_hauteur)   
+        goal = 1;
+        return;      
+    end
+    
+   
     
     % Cas o� le ballon sort du terain
     if positionBallon(1) < terrain_min_x || positionBallon(1) > terrain_max_x || ...
