@@ -54,7 +54,7 @@ coefficientRestitution = 0.5;
 max_error = [0.001 0.001 0.001; 0.001 0.001 0.001; 0.001 0.001 0.001];
 % pos_x, pos_y, pos_z v_x, v_y, v_z w_x w_y w_z tl
 q0Balle=[posBalleDepart(1) posBalleDepart(2) posBalleDepart(3) vbal(1) vbal(2) vbal(3) 0 0 0 tl];
-q0Boite=[];
+q0Boite=[rCM(1) rCM(2) rCM(3) 0 0 0 wboi(1) wboi(2) wboi(3) 0];
 
 %Solution
 DeltaT = 0.001;
