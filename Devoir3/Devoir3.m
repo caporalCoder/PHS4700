@@ -46,7 +46,7 @@ function [Coup tf vbaf vbof wbof rbaf rbof ]=Devoir3(vbal,wboi,tl)
     t0 = 0;
     qsBoite=SEDRK4t0(q0Boite,t0,delta_t, 0);
     qsBalle=SEDRK4t0(q0Balle,t0,delta_t, 1);
-    axeBoite = AxeCylindre  * [transpose(qsBoite(10:12)) transpose(qsBoite(13:15)) transpose(qsBoite(16:18))]
+    axeBoite = AxeCylindre  * [transpose(qsBoite(10:12)) transpose(qsBoite(13:15)) transpose(qsBoite(16:18))];
     [Coup, normale] = FinSimulation(axeBoite, qsBalle(4:6),qsBoite(4:6));
     t2=t0;
     while Coup < 0
@@ -55,7 +55,7 @@ function [Coup tf vbaf vbof wbof rbaf rbof ]=Devoir3(vbal,wboi,tl)
        end
        qsBoite=SEDRK4t0(qsBoite,t2,delta_t, 0);
        t2=t2+delta_t;
-       axeBoite = AxeCylindre  * [transpose(qsBoite(10:12)) transpose(qsBoite(13:15)) transpose(qsBoite(16:18))]
+       axeBoite = AxeCylindre  * [transpose(qsBoite(10:12)) transpose(qsBoite(13:15)) transpose(qsBoite(16:18))];
        [Coup, normale] = FinSimulation(axeBoite, qsBalle(4:6),qsBoite(4:6));
     end
     [conv Err]=ErrSol(qsBoite,q0Boite,precision_minimale);
@@ -82,7 +82,7 @@ function [Coup tf vbaf vbof wbof rbaf rbof ]=Devoir3(vbal,wboi,tl)
                 qs2Balle=SEDRK4t0(qs2Balle,t2,delta_t, 1);
             end
             t2=t2+delta_t;
-            axeBoite = AxeCylindre  * [transpose(qs2Boite(10:12)) transpose(qs2Boite(13:15)) transpose(qs2Boite(16:18))]
+            axeBoite = AxeCylindre  * [transpose(qs2Boite(10:12)) transpose(qs2Boite(13:15)) transpose(qs2Boite(16:18))];
             [Coup, normale] = FinSimulation(axeBoite, qs2Balle(4:6), qs2Boite(4:6));
             trajectoryBoite = [qs2Boite(4:6)];
             trajectoryBalle = [qs2Balle(4:6)];
