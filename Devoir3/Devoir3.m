@@ -79,6 +79,11 @@ function F = ForceFortementVisqueuse(k, A, v)
     F = -k * A * v;
 end
 
+function normal = VecteurNormale(p1, p2)
+    normale = cross([(p2-p1),0],[0,0,1]);
+    normale = normale(1:2);
+end
+
 
 function qs=SEDRK4t0(q0,t0,Deltat,g)
     % Solution equations differentielles par methode de RK4

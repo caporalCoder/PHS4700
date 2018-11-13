@@ -75,13 +75,15 @@ function MI = MomentInertieCylindre(m, r, l)
     MI = [Ixy 0 0; 0 Ixy 0; 0 0 Iz];
 end
 
-function F = ForceFortementVisqueuseBoite(k, A, v)
-
+function F = ForceFortementVisqueuse(k, A, v)
+    F = -k * A * v;
 end
 
-function F = ForceFortementVisqueuseBalle(k, A, v)
-
+function normal = VecteurNormale(p1, p2)
+    n = cross([(p2-p1),0],[0,0,1]);
+    n = n(1:2);
 end
+
 
 function qs=SEDRK4t0(q0,t0,Deltat,g)
     % Solution equations differentielles par methode de RK4
