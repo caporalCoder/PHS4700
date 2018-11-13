@@ -6,43 +6,30 @@ function [Coup tf vbaf vbof wbof rbaf rbof ]=Devoir3(vbal,wboi,tl)
 
 global mBoite
 global hBoite
-
 global RayonBoite
-
 global AxeCylindre
-
 global vInitialeBoite
-
-global rCM
-
+global rBoite
 global RayonBalle
-
 global mBalle
-
 global posBalleDepart
-
 global k
 global aBalle
 global aBoite
-
 global coefficientRestitution
 
 
 mBoite = 0.075; % kg
 hBoite = 0.15; %m
-RayonBoite = hBoite/sqrt(6);
-
+RayonBoite = hBoite/sqrt(6); %m
 AxeCylindre = [0 0 1];
-
-vInitialeBoite = 0;
-
-rCM = [3 0 10]; %m
+vInitialeBoite = [0 0 0];
+rBoite = [3 0 10]; %m
 %w = constante;
 
 RayonBalle = 0.0335;
 
 mBalle = 0.058; %kg
-
 posBalleDepart = [0 0 2]; %m
 
 k = 0.1; %kg/((m^2)s)
@@ -53,8 +40,20 @@ coefficientRestitution = 0.5;
 
 max_error = [0.001 0.001 0.001; 0.001 0.001 0.001; 0.001 0.001 0.001];
 % pos_x, pos_y, pos_z v_x, v_y, v_z w_x w_y w_z tl
-q0Balle=[posBalleDepart(1) posBalleDepart(2) posBalleDepart(3) vbal(1) vbal(2) vbal(3) 0 0 0 tl];
-q0Boite=[rCM(1) rCM(2) rCM(3) 0 0 0 wboi(1) wboi(2) wboi(3) 0];
+q0Balle=[posBalleDepart(1) posBalleDepart(2) posBalleDepart(3) vbal(1) vbal(2) vbal(3) 0 0 0];
+
+% Initialisation de l'etat initial de la boite.
+q0Boite=[rBoite(1) rBoite(2) rBoite(3) vInitialeBoite(1) vInitialeBoite(2) vInitialeBoite(3) wboi(1) wboi(2) wboi(3)];
+
+% Deplacer la boite jusqu'au moment de lancement de la balle
+t = 0;
+dT = 0.001; % A ajuster
+while (t < tl)
+    next_t = t + dT;
+    q0Boite = SEDR4t0E(qBoite, t, next_t, max_error);
+    %
+    t = next_t;
+end
 
 %Solution
 DeltaT = 0.001;
@@ -84,6 +83,9 @@ function normal = VecteurNormale(p1, p2)
     normale = normale(1:2);
 end
 
+function [qs, Err] = CalculTrajectoire(q0, t0, tf, epsilon)
+
+end
 
 function qs=SEDRK4t0(q0,t0,Deltat,g)
     % Solution equations differentielles par methode de RK4
@@ -100,6 +102,11 @@ function qs=SEDRK4t0(q0,t0,Deltat,g)
     k3=feval(g,q0+k2*Deltat/2,t0+Deltat/2);
     k4=feval(g,q0+k3*Deltat,t0+Deltat);
     qs=q0+Deltat*(k1+2*k2+2*k3+k4)/6;
+end
+
+function res=g(q0, ~)%t0
+    global masse_ballon;
+    res = [transpose(q0(4:6)), transpose(Forces(q0)/masse_ballon), transpose([0 0 0])];
 end
 
 function [conv, Err]=ErrSol(qs1,qs0,epsilon)
