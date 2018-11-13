@@ -162,12 +162,13 @@ function [conv, Err]=ErrSol(qs1,qs0,epsilon)
 end
 function MI = MomentInertieSphere(m , r)
 	Ic = 2 * m * r^2 / 3;
-	MI [Ic 0 0; 0 Ic 0; 0 0 Ic];
+	MI = [Ic 0 0; 0 Ic 0; 0 0 Ic];
 end
 function MI = MomentInertieCylindre(m, r, l) 
-	Icx = Icy = m * r^2 / 2 + m * l^2 / 12;
+	Icx =  m * r^2 / 2 + m * l^2 / 12;
+    Icy = Icy;
 	Icz = m * r^2;
-	MI [Icx 0 0; 0 Icy 0; 0 0 Icz];
+	MI = [Icx 0 0; 0 Icy 0; 0 0 Icz];
 end
 function [wBoiteF] = vitesseAngulaireApresCollision(n,wBoiteI, pointCollision, posBalle, posBoite, vBoite, vBalle)
     global mBoite
@@ -176,9 +177,10 @@ function [wBoiteF] = vitesseAngulaireApresCollision(n,wBoiteI, pointCollision, p
     global RayonBoite
     global hBoite
     global coefficientRestitution
-    normal = norm(transpose(n));
+    normal =transpose(n)/ norm(transpose(n));
     rBoite_p = pointCollision - posBoite;
-    GBoite = dot(normal, cross(inv(MomentInertieCylindre(mBoite, RayonBoite, hBoite)) * cross(rBoite_p, normal), rBoite_p ));
+    inertieBoite = MomentInertieCylindre(mBoite, RayonBoite, hBoite);
+    GBoite = dot(normal, cross(inv() * cross(rBoite_p, normal), rBoite_p ));
 
     rBalle_p = pointCollision - posBalle;
     GBalle = dot(normal, cross(inv(MomentInertieSphere(mBalle, RayonBalle)) * cross(rBalle_p, normal), rBalle_p ));
@@ -186,13 +188,14 @@ function [wBoiteF] = vitesseAngulaireApresCollision(n,wBoiteI, pointCollision, p
     alpha = 1/((1/mBoite)+(1/mBalle)+GBoite+GBalle);
     vitesseRelativeInitiale = dot(normal, vBoite - vBalle);
     j= -alpha*(1+coefficientRestitution)*vitesseRelativeInitiale;
+    wBoiteF= wBoiteI - j *inv(inertieBoite)*cross(rBoite_p, normal);
 end
 
 function [vBoiteF, vBalleF] = vitesseApresCollision(n, vBoite, vBalle)
     global coefficientRestitution
     global mBalle
     global mBoite
-    normal = norm(transpose(n));
+    normal = transpose(n)/ norm(transpose(n));
     %n dirige vers l'interieur de la balle
     vitesseRelativeInitiale = dot(normal, vBoite - vBalle);
     j = -((1+coefficientRestitution)*vitesseRelativeInitiale)/((1/mBalle)+(1/mBoite));
@@ -229,8 +232,8 @@ function [Coup, normale] = FinSimulation(axeBoite,  posBalle, posBoite)
 	global RayonBoite
     global hBoite
 
-    surfaceSuperieure =posBoite + norm(axeBoite) * hBoite/2;
-    surfaceInferieure =posBoite + norm(-axeBoite) * hBoite/2;
+    surfaceSuperieure =posBoite + (axeBoite/norm(axeBoite)) * hBoite/2;
+    surfaceInferieure =posBoite + (axeBoite/norm(-axeBoite)) * hBoite/2;
 
     diffCentreMasse = posBoite - posBalle;
     %surface 
