@@ -51,7 +51,7 @@ aBoite = (RayonBoite^2) + (hBoite^2);
 
 coefficientRestitution = 0.5;
 
-max_error = [0.001 0.001 0.001; 0.001 0.001 0.001; 0.001 0.001 0.001];
+max_error = [transpose([0.001 0.001 0.001]) transpose(Inf(1,3)) transpose(Inf(1,3))];
 % pos_x, pos_y, pos_z v_x, v_y, v_z w_x w_y w_z tl
 q0Balle=[posBalleDepart(1) posBalleDepart(2) posBalleDepart(3) vbal(1) vbal(2) vbal(3) 0 0 0 tl];
 q0Boite=[rCM(1) rCM(2) rCM(3) 0 0 0 wboi(1) wboi(2) wboi(3) 0];
@@ -59,7 +59,40 @@ q0Boite=[rCM(1) rCM(2) rCM(3) 0 0 0 wboi(1) wboi(2) wboi(3) 0];
 %Solution
 DeltaT = 0.001;
 m=1;
-
+ % Solution avec m=1
+ qs1=SEDRK4t0(q0,t0,delta_t);
+  
+ But = FinSimulation(qs1(1:3));
+ t2=t0;
+ while But < -2
+     qs1=SEDRK4t0(qs1,t2,delta_t);
+     t2=t2+delta_t;
+     But = FinSimulation(qs1(1:3));
+ end
+ [conv Err]=ErrSol(qs1,q0,precision_minimale);
+ qs2=qs1;
+ % Iteration avec m>1
+ while not(conv)
+     delta_t=delta_t/2;
+     m=m+1;
+     t2=t0;        
+     qs2=q0;
+     But = -3;
+     trajectory = [q0(1:3)];
+     while But < -2
+         qs2=SEDRK4t0(qs2,t2,delta_t);
+         t2=t2+delta_t;
+         But = FinSimulation(qs2(1:3));
+         trajectory=[trajectory; qs2(1:3)];
+     end
+     
+     [conv Err]=ErrSol(qs2,qs1,precision_minimale);
+     qs1=qs2;
+     if m>10
+         break;
+     end
+ end
+ qs=qs2+Err/15;
 
 end
 
