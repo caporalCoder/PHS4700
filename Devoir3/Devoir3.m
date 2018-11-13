@@ -34,7 +34,7 @@ function [Coup tf vbaf vbof wbof rbaf rbof ]=Devoir3(vbal,wboi,tl)
     aBalle = pi * (RayonBalle^2);
     aBoite = (RayonBoite^2) + (hBoite^2);
     coefficientRestitution = 0.5;
-    precision_minimale = [[0.001 0.001 0.001] [Inf(1,3)] [Inf(1,3)];
+    precision_minimale = [Inf(1,3) 0.001 0.001 0.001 Inf(1,3) Inf(1,3) Inf(1,3) Inf(1,3)];
     % pos_x, pos_y, pos_z v_x, v_y, v_z w_x w_y w_z tl
     q0Balle=[vbal(1) vbal(2) vbal(3) rBalle(1) rBalle(2) rBalle(3) 0 0 0 1 0 0 0 1 0 0 0 1];
 
@@ -46,7 +46,8 @@ function [Coup tf vbaf vbof wbof rbaf rbof ]=Devoir3(vbal,wboi,tl)
     t0 = 0;
     qsBoite=SEDRK4t0(q0Boite,t0,delta_t, 0);
     qsBalle=SEDRK4t0(q0Balle,t0,delta_t, 1);
-    [Coup, normale] = FinSimulation(qsBalle(4:6)-qsBoite(4:6));
+    axeBoite = AxeCylindre  * [transpose(qsBoite(10:12)) transpose(qsBoite(13:15)) transpose(qsBoite(16:18))]
+    [Coup, normale] = FinSimulation(axeBoite, qsBalle(4:6),qsBoite(4:6));
     t2=t0;
     while Coup < 0
        if t2 >= tl 
@@ -54,7 +55,8 @@ function [Coup tf vbaf vbof wbof rbaf rbof ]=Devoir3(vbal,wboi,tl)
        end
        qsBoite=SEDRK4t0(qsBoite,t2,delta_t, 0);
        t2=t2+delta_t;
-       [Coup, normale] = FinSimulation( qsBalle(4:6)-qsBoite(4:6));
+       axeBoite = AxeCylindre  * [transpose(qsBoite(10:12)) transpose(qsBoite(13:15)) transpose(qsBoite(16:18))]
+       [Coup, normale] = FinSimulation(axeBoite, qsBalle(4:6),qsBoite(4:6));
     end
     [conv Err]=ErrSol(qsBoite,q0Boite,precision_minimale);
     [conv2 Err2]=ErrSol(qsBalle,q0Balle,precision_minimale);
@@ -80,7 +82,8 @@ function [Coup tf vbaf vbof wbof rbaf rbof ]=Devoir3(vbal,wboi,tl)
                 qs2Balle=SEDRK4t0(qs2Balle,t2,delta_t, 1);
             end
             t2=t2+delta_t;
-            [Coup, normale] = FinSimulation(qs2Balle(4:6)-qs2Boite(4:6));
+            axeBoite = AxeCylindre  * [transpose(qs2Boite(10:12)) transpose(qs2Boite(13:15)) transpose(qs2Boite(16:18))]
+            [Coup, normale] = FinSimulation(axeBoite, qs2Balle(4:6), qs2Boite(4:6));
             trajectoryBoite = [qs2Boite(4:6)];
             trajectoryBalle = [qs2Balle(4:6)];
         end
@@ -98,6 +101,15 @@ function [Coup tf vbaf vbof wbof rbaf rbof ]=Devoir3(vbal,wboi,tl)
     end
     qsBoite=qs2Boite+Err/15;
     qsBalle=qs2Balle+Err2/15;
+    tf = t2;
+    [vBoiteF, vBalleF] = vitesseApresCollision(normale, qsBoite(1:3), qsBalle(1:3));
+    vbaf =[transpose(qsBalle(1:3)), transpose(vBalleF)];
+    disp(normale);
+    vbof = [transpose(qsBoite(1:3)), transpose(vBoiteF)];
+    rbaf = qs2Balle(4:6);
+    rbof = qs2Boite(4:6);
+    wbof = [0 0 0];
+
 end
 
 function F = ForceFortementVisqueuse(A, v)
@@ -148,16 +160,44 @@ function [conv, Err]=ErrSol(qs1,qs0,epsilon)
     Err = qs1-qs0;
     conv = all(abs(Err) < epsilon);
 end
+function MI = MomentInertieSphere(m , r)
+	Ic = 2 * m * r^2 / 3;
+	MI [Ic 0 0; 0 Ic 0; 0 0 Ic];
+end
+function MI = MomentInertieCylindre(m, r, l) 
+	Icx = Icy = m * r^2 / 2 + m * l^2 / 12;
+	Icz = m * r^2;
+	MI [Icx 0 0; 0 Icy 0; 0 0 Icz];
+end
+function [wBoiteF] = vitesseAngulaireApresCollision(n,wBoiteI, pointCollision, posBalle, posBoite, vBoite, vBalle)
+    global mBoite
+    global mBalle
+    global RayonBalle
+    global RayonBoite
+    global hBoite
+    global coefficientRestitution
+    normal = norm(transpose(n));
+    rBoite_p = pointCollision - posBoite;
+    GBoite = dot(normal, cross(inv(MomentInertieCylindre(mBoite, RayonBoite, hBoite)) * cross(rBoite_p, normal), rBoite_p ));
+
+    rBalle_p = pointCollision - posBalle;
+    GBalle = dot(normal, cross(inv(MomentInertieSphere(mBalle, RayonBalle)) * cross(rBalle_p, normal), rBalle_p ));
+
+    alpha = 1/((1/mBoite)+(1/mBalle)+GBoite+GBalle);
+    vitesseRelativeInitiale = dot(normal, vBoite - vBalle);
+    j= -alpha*(1+coefficientRestitution)*vitesseRelativeInitiale;
+end
 
 function [vBoiteF, vBalleF] = vitesseApresCollision(n, vBoite, vBalle)
     global coefficientRestitution
     global mBalle
     global mBoite
+    normal = norm(transpose(n));
     %n dirige vers l'interieur de la balle
-    vitesseRelativeInitiale = dot(n, vBoite - vBalle);
+    vitesseRelativeInitiale = dot(normal, vBoite - vBalle);
     j = -((1+coefficientRestitution)*vitesseRelativeInitiale)/((1/mBalle)+(1/mBoite));
-    vBalleF = vBalle + (j* n/mBalle);
-    vBoiteF = vBoite - (j* n/mBoite);
+    vBalleF = vBalle + (j* normal/mBalle);
+    vBoiteF = vBoite - (j* normal/mBoite);
 
     
 end
@@ -184,11 +224,16 @@ function res=ForcesBalle(q0)
     res = Fg + F_vis ;
 end
 
-function [Coup, normale] = FinSimulation(diffCentreMasse)
+function [Coup, normale] = FinSimulation(axeBoite,  posBalle, posBoite)
     global RayonBalle
 	global RayonBoite
     global hBoite
-    %Surface
+
+    surfaceSuperieure =posBoite + norm(axeBoite) * hBoite/2;
+    surfaceInferieure =posBoite + norm(-axeBoite) * hBoite/2;
+
+    diffCentreMasse = posBoite - posBalle;
+    %surface 
 	condition1 = (-hBoite/2 < diffCentreMasse(3)) && (diffCentreMasse(3) < hBoite/2) && (sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2) <= (RayonBalle + RayonBoite));
 	% Face Inferieur
 	condition2 = (sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2) < RayonBoite) && ((hBoite/2 - RayonBalle) <= diffCentreMasse(3)) && ((-hBoite/2 + RayonBalle) >= diffCentreMasse(3));
@@ -200,35 +245,41 @@ function [Coup, normale] = FinSimulation(diffCentreMasse)
 	condition5 = (hBoite/2 <= diffCentreMasse(3) && diffCentreMasse(3) <= (hBoite/2 + RayonBalle)) && (RayonBalle <= sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2)) && sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2) <= (RayonBoite + sqrt(RayonBalle^2 - (abs(diffCentreMasse(3)) - hBoite/2)^2));
 
 	% sol
-	condition6 = (diffCentreMasse <= RayonBalle);	
+	condition6 = (posBalle(3) <= RayonBalle);	
 	Coup = -1;
 	normale = [0 0 0];
 
-	if (condition6)
+    if (condition6) 
+        disp('SOL');
 		Coup = 0;
 		normale = [0 0 0];
 	elseif (condition1)
-		%
+        %
+        disp('Surface de la boite');
 		Coup = 1;
 		k = RayonBoite / (sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2));
 		normale = [k*diffCentreMasse(1) k*diffCentreMasse(2) diffCentreMasse(3)];
 	elseif (condition2)
-		%
+        %
+        disp('Face Inferieur');
 		Coup = 1;
 		k = RayonBoite / (sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2));
 		normale = [diffCentreMasse(1) diffCentreMasse(2) -hBoite/2];
 	elseif (condition3)
-		%
+        %
+        disp('Face Inferieur');
 		Coup = 1;
 		k = RayonBoite / (sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2));
 		normale = [diffCentreMasse(1) diffCentreMasse(2) hBoite/2];
 	elseif (condition4)
-		%
+        %
+        disp('Face Inferieur');
 		Coup = 1;
 		k = RayonBoite / (sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2));
 		normale = [k * diffCentreMasse(1) k * diffCentreMasse -hBoite/2];
 	elseif (condition5)
-		%
+        %
+        disp('Face Inferieur');
 		Coup = 1;
 		k = RayonBoite / (sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2));
 		normale = [k * diffCentreMasse(1) k * diffCentreMasse hBoite/2];
