@@ -50,8 +50,10 @@ function [But tf rf vf ] = Devoir2(ri,vi,wi)
     % q0 = [ri_x ri_y ri_z, vi_x vi_y vi_z, w_x, w_y, w_z]
     q0 = [ri, vi, wi];
     
+    size(q0)
+    
     % Intervale de temps de la simulation
-    delta_t = 0.001;  %% a ajuster
+    delta_t = 0.01;  %% a ajuster
     
     % Nombre d'iteration de la simulation
     %nb_iteration = 1; %% a ajuster
@@ -59,12 +61,12 @@ function [But tf rf vf ] = Devoir2(ri,vi,wi)
     % Temps de demarrage de la simulation
     t0 = 0.0;
     
-    precision_minimale = [transpose([0.001 0.001 0.001;0.001 0.001 0.001])  transpose(Inf(1,3))];
+    precision_minimale = [transpose([0.001 0.001 0.001]) transpose(Inf(1,3)) transpose(Inf(1,3))];
     
     m=1;
     % Solution avec m=1
     qs1=SEDRK4t0(q0,t0,delta_t);
-    qs1
+  
     But = FinSimulation(qs1(1:3));
     t2=t0;
     while But < -2
