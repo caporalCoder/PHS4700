@@ -75,6 +75,11 @@ function MI = MomentInertieCylindre(m, r, l)
     MI = [Ixy 0 0; 0 Ixy 0; 0 0 Iz];
 end
 
+function F = ForceFortementVisqueuse(k, A, v)
+    F = -k * A * v;
+end
+
+
 function qs=SEDRK4t0(q0,t0,Deltat,g)
     % Solution equations differentielles par methode de RK4
     % Equation a resoudre : dq/dt=g(q,t)
