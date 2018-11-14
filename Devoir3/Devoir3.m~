@@ -2,106 +2,153 @@
 
 
 function [Coup tf vbaf vbof wbof rbaf rbof ]=Devoir3(vbal,wboi,tl)
+    global mBoite
+    global hBoite
+    global RayonBoite
+    global AxeCylindre
+    global vInitialeBoite
+    global rBoite
+    global RayonBalle
+    global mBalle
+    global rBalle
+    global k
+    global aBalle
+    global aBoite
+    global coefficientRestitution
+    global gravitation
+
+    gravitation = 9.8;%m/s^2
+
+    mBoite = 0.075; % kg
+    hBoite = 0.15; %m
+    RayonBoite = hBoite/sqrt(6); %m
+    AxeCylindre = [0 0 1];
+    vInitialeBoite = [0 0 0];
+    rBoite = [3 0 10]; %m
+    RayonBalle = 0.0335;
+    mBalle = 0.058; %kg
+    rBalle = [0 0 2]; %m
+    k = 0.1; %kg/((m^2)s)
+    aBalle = pi * (RayonBalle^2);
+    aBoite = (RayonBoite^2) + (hBoite^2);
+    coefficientRestitution = 0.5;
+    precision_minimale = [Inf(1,3) 0.001 0.001 0.001 Inf(1,3) Inf(1,3) Inf(1,3) Inf(1,3)];
+    % pos_x, pos_y, pos_z v_x, v_y, v_z w_x w_y w_z tl
+    q0Balle=[vbal(1) vbal(2) vbal(3) rBalle(1) rBalle(2) rBalle(3) 0 0 0 1 0 0 0 1 0 0 0 1];
+
+    % Initialisation de l'etat initial de la boite.
+    q0Boite=[vInitialeBoite(1) vInitialeBoite(2) vInitialeBoite(3) rBoite(1) rBoite(2) rBoite(3) wboi(1) wboi(2) wboi(3) 1 0 0 0 1 0 0 0 1];
+    delta_t = 0.01;
+    m=1;
+    % Solution avec m=1
+    t0 = 0;
+    qsBoite=SEDRK4t0(q0Boite,t0,delta_t, 0);
+    qsBalle=SEDRK4t0(q0Balle,t0,delta_t, 1);
+    axeBoite = AxeCylindre  * [transpose(qsBoite(10:12)) transpose(qsBoite(13:15)) transpose(qsBoite(16:18))];
+    [Coup, normale] = FinSimulation(axeBoite, qsBalle(4:6),qsBoite(4:6));
+    t2=t0;
+    while Coup < 0
+       if t2 >= tl 
+           qsBalle=SEDRK4t0(qsBalle,t2,delta_t, 1);
+       end
+       qsBoite=SEDRK4t0(qsBoite,t2,delta_t, 0);
+       t2=t2+delta_t;
+       axeBoite = AxeCylindre  * [transpose(qsBoite(10:12)) transpose(qsBoite(13:15)) transpose(qsBoite(16:18))];
+       matRot = [transpose(qsBoite(10:12)) transpose(qsBoite(13:15)) transpose(qsBoite(16:18))];
+       [Coup, normale] = FinSimulation(axeBoite, qsBalle(4:6),qsBoite(4:6), matRot);
+    end
     
+    [conv Err]=ErrSol(qsBoite,q0Boite,precision_minimale);
+    [conv2 Err2]=ErrSol(qsBalle,q0Balle,precision_minimale);
 
-global mBoite
-global hBoite
-global RayonBoite
-global AxeCylindre
-global vInitialeBoite
-global rBoite
-global RayonBalle
-global mBalle
-global posBalleDepart
-global k
-global aBalle
-global aBoite
-global coefficientRestitution
+    conv = and(conv, conv2);
 
+    qs2Boite=qsBoite;
+    qs2Balle=qsBalle;
+    % Iteration avec m>1
+    while not(conv)
+        delta_t=delta_t/2;
+        m=m+1;
+        t2=t0;        
+        qs2Boite=q0Boite;
+        qs2Balle=q0Balle;
+        Coup = -1;
+        %trajectoryBoite = [q0Boite(4:6)];
+        %trajectoryBalle = [q0Balle(4:6)];
 
-mBoite = 0.075; % kg
-hBoite = 0.15; %m
-RayonBoite = hBoite/sqrt(6); %m
-AxeCylindre = [0 0 1];
-vInitialeBoite = [0 0 0];
-rBoite = [3 0 10]; %m
-%w = constante;
+        while Coup < 0
+            qs2Boite=SEDRK4t0(qs2Boite,t2,delta_t, 0);
+            if t2 >= tl 
+                qs2Balle=SEDRK4t0(qs2Balle,t2,delta_t, 1);
+            end
+            t2=t2+delta_t;
+            axeBoite = AxeCylindre  * [transpose(qs2Boite(10:12)) transpose(qs2Boite(13:15)) transpose(qs2Boite(16:18))];
+            matRot = [transpose(qs2Boite(10:12)) transpose(qs2Boite(13:15)) transpose(qs2Boite(16:18))];
+            [Coup, normale] = FinSimulation(axeBoite, qs2Balle(4:6), qs2Boite(4:6), matRot);
+            %trajectoryBoite = [qs2Boite(4:6)];
+            %trajectoryBalle = [qs2Balle(4:6)];
+        end
 
-RayonBalle = 0.0335;
-
-mBalle = 0.058; %kg
-posBalleDepart = [0 0 2]; %m
-
-k = 0.1; %kg/((m^2)s)
-aBalle = pi * (RayonBalle^2);
-aBoite = (RayonBoite^2) + (hBoite^2);
-
-coefficientRestitution = 0.5;
-
-max_error = [0.001 0.001 0.001; 0.001 0.001 0.001; 0.001 0.001 0.001];
-% pos_x, pos_y, pos_z v_x, v_y, v_z w_x w_y w_z tl
-q0Balle=[posBalleDepart(1) posBalleDepart(2) posBalleDepart(3) vbal(1) vbal(2) vbal(3) 0 0 0];
-
-% Initialisation de l'etat initial de la boite.
-q0Boite=[rBoite(1) rBoite(2) rBoite(3) vInitialeBoite(1) vInitialeBoite(2) vInitialeBoite(3) wboi(1) wboi(2) wboi(3)];
-
-% Deplacer la boite jusqu'au moment de lancement de la balle
-t = 0;
-dT = 0.001; % A ajuster
-while (t < tl)
-    next_t = t + dT;
-    q0Boite = SEDR4t0E(qBoite, t, next_t, max_error);
-    %
-    t = next_t;
-end
-
-%Solution
-DeltaT = 0.001;
-m=1;
-
+        
+        [conv Err]=ErrSol(qs2Boite,qsBoite,precision_minimale);
+        [conv2 Err2]=ErrSol(qs2Balle,qsBalle,precision_minimale);    
+        conv = and(conv, conv2);
+        
+        qsBoite=qs2Boite;
+        qsBalle=qs2Balle;
+        if m>10
+            break;
+        end
+    end
+    
+    qsBoite=qs2Boite+Err/15;
+    qsBalle=qs2Balle+Err2/15;
+    tf = t2;
+    [vBoiteF, vBalleF] = vitesseApresCollision(normale, qsBoite(1:3), qsBalle(1:3), wboi);
+    vbaf =[transpose(qsBalle(1:3)), transpose(vBalleF)];
+    disp(normale);
+    vbof = [transpose(qsBoite(1:3)), transpose(vBoiteF)];
+    rbaf = qs2Balle(4:6);
+    rbof = qs2Boite(4:6);
+    wbof = [0 0 0];
 
 end
 
-
-function MI = MomentInertieSphere(m, r)
-    Ic = 2 * m * r^2 / 3;
-    MI = [Ic 0 0; 0 Ic 0; 0 0 Ic];
-end
-
-function MI = MomentInertieCylindre(m, r, l)
-    Ixy = m * r^2 / 2 + m * l^2 / 12;
-    Iz = m * r^2
-    MI = [Ixy 0 0; 0 Ixy 0; 0 0 Iz];
-end
-
-function F = ForceFortementVisqueuse(k, A, v)
+function F = ForceFortementVisqueuse(A, v)
+    global k
     F = -k * A * v;
 end
 
-function normal = VecteurNormale(p1, p2)
-    normale = cross([(p2-p1),0],[0,0,1]);
-    normale = normale(1:2);
-end
-
-function [qs, Err] = CalculTrajectoire(q0, t0, tf, epsilon)
-
-end
-
-function qs=SEDRK4t0(q0,t0,Deltat,g)
+function qs=SEDRK4t0(q0,t0,DeltaT, Boite_ou_Balle) %0 pour boite et 1 pour balle
     % Solution equations differentielles par methode de RK4
     % Equation a resoudre : dq/dt=g(q,t)
     % avec
-    %   qs        : solution [q(to+Deltat)]
-    %   q0        : conditions initiales [q(t0)]
-    %   Deltat    : intervalle de temps
-    %   g         : membre de droite de ED. 
-    %               C'est un m-file de matlab
-    %               qui retourne la valeur de g au temps choisi
-    k1=feval(g,q0,t0);
-    k2=feval(g,q0+k1*Deltat/2,t0+Deltat/2);
-    k3=feval(g,q0+k2*Deltat/2,t0+Deltat/2);
-    k4=feval(g,q0+k3*Deltat,t0+Deltat);
-    qs=q0+Deltat*(k1+2*k2+2*k3+k4)/6;
+    % qs : solution [q(to+DeltaT)]
+    % q0 : conditions initiales [q(t0)]
+    % DeltaT : intervalle de temps
+    % g : membre de droite de ED.
+    % C?est un m-file de matlab
+    % qui retourne la valeur de g au temps choisi
+    k1=g(q0,t0, Boite_ou_Balle);
+    k2=g(q0+(k1*DeltaT/2),t0+DeltaT/2,Boite_ou_Balle);
+    k3=g(q0+k2*DeltaT/2,t0+DeltaT/2, Boite_ou_Balle);
+    k4=g(q0+k3*DeltaT,t0+DeltaT, Boite_ou_Balle);
+    qs=q0+DeltaT*(k1+2*k2+2*k3+k4)/6;
+end
+
+function res=g(q0, t0, Boite_ou_Balle)
+    global mBalle
+    global mBoite
+    % Rxx = rotx(t0*q0(7));
+    % Ryy = roty(t0*q0(8));
+    % Rzz = rotz(t0*q0(9));
+    % MatRot = Rzz * Ryy * Rxx;
+    if Boite_ou_Balle == 0
+        acceleration= ForcesBoite(q0)/mBoite;
+    else %Boite_ou_Balle == 1
+        acceleration= ForcesBalle(q0)/mBalle;
+    end
+    res = [acceleration q0(1:3), [0,0,0], [q0(8)*q0(16)-q0(9)*q0(13),q0(8)*q0(17)-q0(9)*q0(14),q0(8)*q0(18)-q0(9)*q0(15)], [q0(9)*q0(10)-q0(7)*q0(16),q0(9)*q0(11)- q0(7)*q0(17),q0(9)*q0(12)- q0(7)*q0(18)], [q0(7)*q0(13)-q0(8)*q0(10),q0(7)*q0(14)- q0(8)*q0(11),q0(7)*q0(15)- q0(8)*q0(12)] ];
 end
 
 function [conv, Err]=ErrSol(qs1,qs0,epsilon)
@@ -114,4 +161,172 @@ function [conv, Err]=ErrSol(qs1,qs0,epsilon)
     %   epsilon   : pr?cision pour chaque variable
     Err = qs1-qs0;
     conv = all(abs(Err) < epsilon);
+end
+
+function MI = MomentInertieSphere(m , r)
+	Ic = 2 * m * r^2 / 3;
+	MI = [Ic 0 0; 0 Ic 0; 0 0 Ic];
+end
+
+function MI = MomentInertieCylindre(m, r, l) 
+	Icx =  m * r^2 / 2 + m * l^2 / 12;
+    Icy = Icx;
+	Icz = m * r^2;
+	MI = [Icx 0 0; 0 Icy 0; 0 0 Icz];
+end
+
+function [wBoiteF] = vitesseAngulaireApresCollision(n,wBoiteI, pointCollision, posBalle, posBoite, vBoite, vBalle)
+    global mBoite
+    global mBalle
+    global RayonBalle
+    global RayonBoite
+    global hBoite
+    global coefficientRestitution
+    normal =transpose(n)/ norm(transpose(n));
+    rBoite_p = pointCollision - posBoite;
+    inertieBoite = MomentInertieCylindre(mBoite, RayonBoite, hBoite);h
+    GBoite = dot(normal, cross(inv() * cross(rBoite_p, normal), rBoite_p ));
+
+    rBalle_p = pointCollision - posBalle;
+    GBalle = dot(normal, cross(inv(MomentInertieSphere(mBalle, RayonBalle)) * cross(rBalle_p, normal), rBalle_p ));
+
+    alpha = 1/((1/mBoite)+(1/mBalle)+GBoite+GBalle);
+    vitesseRelativeInitiale = dot(normal, vBoite - vBalle);
+    j= -alpha*(1+coefficientRestitution)*vitesseRelativeInitiale;
+    wBoiteF= wBoiteI - j *inv(inertieBoite)*cross(rBoite_p, normal);
+end
+
+function [vBoiteF, vBalleF] = vitesseApresCollision(rp, vBoite, vBalle, wboi)
+    global coefficientRestitution
+    global mBalle
+    global mBoite
+    global rBalle
+    global hBoite
+    global rBoite
+    global RayonBoite
+    global RayonBalle
+    
+    normal = rp - rBalle;
+    %normal = transpose(n)/ norm(transpose(n));
+    normal = normal / norm(normal);
+    
+    %Vecteur directeur de l'impulsion balle
+    r_balle_p = rBalle - rp;
+    %Vecteur directeur de l'impulsion balle
+    r_boite_p = rBoite - rp;
+    
+    %Calcul de v_boite_p a cause de la rotation que subit la boite de
+    %conserve
+    v_boite_p = vBoite + cross(wboi, r_boite_p);
+    
+    iBoite = MomentInertieCylindre(mBoite, RayonBoite, hBoite);
+    iBalle = MomentInertieSphere(mBalle , RayonBalle);
+    
+    
+    
+    Gballe = 0; %dot(transpose(normal), cross(inv(iBalle) *  cross(transpose(r_balle_p), transpose(normal)), transpose(r_balle_p)));
+    Gboite = dot(transpose(normal), cross(inv(iBoite) * cross(transpose(r_boite_p), transpose(normal)), transpose(r_boite_p)));
+    
+    % Vitesse lineaire relative totale entre la boite et la balle au moment
+    % de la collision t_ est :
+    v_r_ = dot(normal, vBalle - (vBoite + cross(wboi, rp)));
+    
+    alpha =  1.0 / (1.0/mBalle + 1.0/mBoite + Gballe + Gboite);
+    
+    j = -alpha * (1 + coefficientRestitution) * v_r_;
+    
+    %n dirige vers l'interieur de la balle
+    %vitesseRelativeInitiale = dot(normal, vBoite - vBalle);
+    %j = -((1+coefficientRestitution)*vitesseRelativeInitiale)/((1/mBalle)+(1/mBoite));
+    vBalleF = vBalle + (j* transpose(normal)/mBalle);
+    vBoiteF = vBoite - (j* transpose(normal)/mBoite);
+end
+
+function res=ForcesBoite(q0)
+    global mBoite
+    global gravitation
+    global aBoite % Aire Boite
+        
+    Fg = [0  0 -mBoite*gravitation];
+    F_vis = ForceFortementVisqueuse(aBoite, q0(1:3));
+    
+
+    res = Fg + F_vis ;
+end
+
+function res=ForcesBalle(q0)
+    global mBalle
+    global gravitation
+    global aBalle % Aire Balle
+    
+    Fg = [0, 0, -mBalle * gravitation];
+    F_vis = ForceFortementVisqueuse(aBalle, q0(1:3));
+
+    res = Fg + F_vis ;
+end
+
+function [Coup, rp] = FinSimulation(axeBoite,  r_balle_t, r_boite_t, matRot)
+    global RayonBalle
+	global RayonBoite
+    global hBoite
+
+    surfaceSuperieure =posBoite + (axeBoite/norm(axeBoite)) * hBoite/2;
+    surfaceInferieure =posBoite + (axeBoite/norm(-axeBoite)) * hBoite/2;
+
+    r_bb_R = inv(matRot) * (r_balle_t - r_boite_t);
+    %surface 
+	condition1 = (-hBoite/2 < diffCentreMasse(3)) && (diffCentreMasse(3) < hBoite/2) && (sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2) <= (RayonBalle + RayonBoite));
+	% Face Inferieur
+	condition2 = (sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2) < RayonBoite) && ((hBoite/2 - RayonBalle) <= diffCentreMasse(3)) && ((-hBoite/2 + RayonBalle) >= diffCentreMasse(3));
+	% Face Superieur
+	condition3 = (sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2) < RayonBoite) && (diffCentreMasse(3) <= (hBoite/2 + RayonBalle)) && (diffCentreMasse(3) >= (hBoite/2 - RayonBalle));
+	% Arrete Inferieur
+	condition4 = ((hBoite/2 - RayonBalle) <= diffCentreMasse(3) && diffCentreMasse(3) <= -hBoite/2) && RayonBoite <= sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2) && sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2) <= (RayonBoite + sqrt(RayonBalle^2 - (abs(diffCentreMasse(3)) - hBoite/2)^2));
+	% Arrete Superieur
+	condition5 = (hBoite/2 <= diffCentreMasse(3) && diffCentreMasse(3) <= (hBoite/2 + RayonBalle)) && (RayonBalle <= sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2)) && sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2) <= (RayonBoite + sqrt(RayonBalle^2 - (abs(diffCentreMasse(3)) - hBoite/2)^2));
+
+	% sol
+	condition6 = (posBalle(3) <= RayonBalle);	
+	Coup = -1;
+	rp = [0 0 0];
+
+    if (condition6) 
+        disp('SOL');
+		Coup = 0;
+		rp = [0 0 0];
+	elseif (condition1)
+        %
+        disp('Surface de la boite');
+		Coup = 1;
+		k = RayonBoite / (sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2));
+		%rp = [k*diffCentreMasse(1) k*diffCentreMasse(2) diffCentreMasse(3)];
+        rp = 
+	elseif (condition2)
+        %
+        disp('Face Inferieur');
+		Coup = 1;
+		k = RayonBoite / (sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2));
+		rp = [diffCentreMasse(1) diffCentreMasse(2) -hBoite/2];
+	elseif (condition3)
+        %
+        disp('Face Inferieur');
+		Coup = 1;
+		k = RayonBoite / (sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2));
+		rp = [diffCentreMasse(1) diffCentreMasse(2) hBoite/2];
+	elseif (condition4)
+        %
+        disp('Face Inferieur');
+		Coup = 1;
+		k = RayonBoite / (sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2));
+		rp = [k * diffCentreMasse(1) k * diffCentreMasse -hBoite/2];
+	elseif (condition5)
+        %
+        disp('Face Inferieur');
+		Coup = 1;
+		k = RayonBoite / (sqrt(diffCentreMasse(1)^2 + diffCentreMasse(2)^2));
+		rp = [k * diffCentreMasse(1) k * diffCentreMasse hBoite/2];
+	end
+
+	%normale = transpose(normale);
+    rp = rp + diffCentreMasse;
 end
