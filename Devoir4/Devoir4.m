@@ -51,6 +51,8 @@ function [tps, fTrain, Itrain] = Devoir4(vtrainkmh, fAvion)
         tps = tps + 1;
         
     end
+    length(fTrain)
+    length(Itrain)
     
 end
 
