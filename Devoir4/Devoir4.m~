@@ -21,14 +21,11 @@ end
 
 
 %% Function principal  du devoir 
-function [tps fTrain Itrain] = Devoir4(vtrainkmh, fAvion)
+function [tps, fTrain, Itrain] = Devoir4(vtrainkmh, fAvion)
     global c_son
-    
-    delta_t = 1;
     
     tps = 0;
     
-    [currentFrequency, currentIntensity] = computeFrequencyIntensity();
     % Iterate while the intensity is greater than or egal to 20 dB
     while currentIntensity >= 20
         
@@ -41,16 +38,16 @@ function [tps fTrain Itrain] = Devoir4(vtrainkmh, fAvion)
         u = ps2_after - current_r_avions;
         u = norm(u);
         v1 = c(c_son - dot(v_train, u));
-        v1 = v1 / norm(v1) * fAvion
+        currentFrequency = v1 / norm(v1) * fAvion
         
         d = norm(u) - 100; %each 100m
         
-        
+        currentIntensity = 160 - 20 * log10(d /10) - coef_viscosite(v1);
         
         fTrain = [fTrain, currentFrequency];
         Itrain = [Itrain, currentIntensity];
         % Each time, add delta_t to the current time
-        tps = tps + delta_t;
+        tps = tps + 1;
     end
     
 end
@@ -70,7 +67,7 @@ function [delta_t, pos] = computeDeltaTPosition(current_r_1, current_r_2, v_2)
     
     delta_t = (b_t1 + sqrt(b_t1^2 + a1 * c_t1))/ a1;
     
-    pos = ...;
+    pos = current_r_2 + v_2 * delta_t;
     
 end
 

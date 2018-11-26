@@ -56,9 +56,6 @@ end
 function [delta_t, pos] = computeDeltaTPosition(current_r_1, current_r_2, v_2)
     global c_son
     
-    u = (current_r + current_v * delta_t - current_r);
-    u = u / norm(u);
-    
     position_diff = current_r_2 - current_r_1;
     
     a1 = c_son^2 - norm(v_2)^2;
@@ -67,7 +64,7 @@ function [delta_t, pos] = computeDeltaTPosition(current_r_1, current_r_2, v_2)
     
     delta_t = (b_t1 + sqrt(b_t1^2 + a1 * c_t1))/ a1;
     
-    pos = ...;
+    pos = current_r_2 + v_2 * delta_t;
     
 end
 
