@@ -1,48 +1,50 @@
 %%% Devoir 4
 
-%% Donnees sur l'avion
-v_avion = transpose(300 * [cos(pi/18) 0 sin(pi/18)]); %km/h
-r_avoin = transpose([0 0 0]);
-i_son = 160 %dB
-
-%% Donnees sur le train
-r_train = transpose([10 10 0]); %km
-
-%% Donnees sur l'air et le son
-phi = 10; %centrigrade 
-taux_humidite = 0.7; 
-
-c_son = (331.3 + 0.606 * phi); % m/s
-
-%% Coeficient de viscosite
-function coef_viscosite = A(v)
-    coef_viscosite = 0.8 + 0.0041 * v; % dB/km
-end
-
-
 %% Function principal  du devoir 
 function [tps, fTrain, Itrain] = Devoir4(vtrainkmh, fAvion)
     global c_son
+    global v_avion
+    global r_avion
+    global i_son
+    global r_train
+    
+    %%% Donnees sur l'avion
+    v_avion = transpose(300 * [cos(pi/18) 0 sin(pi/18)]); %km/h
+    r_avion = transpose([0 0 0]);
+    i_son = 160; %dB
+
+    %%% Donnees sur le train
+    r_train = transpose([10 10 0]); %km
+
+    %%% Donnees sur l'air et le son
+    phi = 10; %centrigrade 
+    taux_humidite = 0.7; 
+
+    c_son = (331.3 + 0.606 * phi); % m/s
     
     tps = 0;
+    currentIntensity = i_son;
+    
+    fTrain = [];
+    Itrain = [];
     
     % Iterate while the intensity is greater than or egal to 20 dB
     while currentIntensity >= 20
         
-        current_r_avion = r_avion + v_avion * t;
-        current_v_train = r_train + v_train * t;
+        current_r_avion = r_avion + v_avion * tps;
+        current_r_train = r_train + vtrainkmh * tps;
+        % [delta_t1, pos2_after]
+        [delta_t1, pos2_after] = computeDeltaTPosition(current_r_avion, current_r_train, vtrainkmh);
+        %[delta_t2, pos1_after] = computeDeltaTPosition(current_r_train, current_r_avion, v_avion);
         
-        [delta_t1, pos2_after] = computeDeltaTPosition(current_r_avion, current_r_train, v_train);
-        [delta_t2, pos1_after] = computeDeltaTPosition(current_r_train, current_r_avion, v_avion);
-        
-        u = ps2_after - current_r_avions;
-        u = norm(u);
-        v1 = c(c_son - dot(v_train, u));
-        currentFrequency = v1 / norm(v1) * fAvion
+        u = pos2_after - current_r_avion;
+        u = u / norm(u);
+        v1 = (c_son - dot(vtrainkmh, u));
+        currentFrequency = v1 / norm(v1) * fAvion;
         
         d = norm(u) - 100; %each 100m
         
-        currentIntensity = 160 - 20 * log10(d /10) - coef_viscosite(v1);
+        currentIntensity = 160 - 20 * log10(d /10) - A(v1);
         
         fTrain = [fTrain, currentFrequency];
         Itrain = [Itrain, currentIntensity];
@@ -50,6 +52,11 @@ function [tps, fTrain, Itrain] = Devoir4(vtrainkmh, fAvion)
         tps = tps + 1;
     end
     
+end
+
+%% Coeficient de viscosite
+function coef_viscosite = A(v)
+    coef_viscosite = 0.8 + 0.0041 * v; % dB/km
 end
 
 %% Calcul de la frequence et de l'intensite.
