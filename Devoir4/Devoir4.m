@@ -9,13 +9,13 @@ function [tps, fTrain, Itrain] = Devoir4(vtrainkmh, fAvion)
     global r_train
     
     %%% Donnees sur l'avion
-    v_avion = transpose(300 * [cos(pi/18) 0 sin(pi/18)]); %km/h
+    v_avion = transpose(300 * [cos(pi/18) 0 sin(pi/18)]) / 3.6; %m/s
     r_avion = transpose([0 0 0]);
     i_son = 160; %dB
 
     %%% Donnees sur le train
-    r_train = transpose([10 10 0]); %km
-
+    r_train = transpose([10 10 0]) * 1000; %m
+    v_train= vtrainkmh / 3.6;
     %%% Donnees sur l'air et le son
     phi = 10; %centrigrade 
     taux_humidite = 0.7; 
@@ -25,28 +25,25 @@ function [tps, fTrain, Itrain] = Devoir4(vtrainkmh, fAvion)
     tps = 0;
     currentIntensity = i_son;
     
-    fTrain = [];
-    Itrain = [];
+    % Calcul de l'intensite au au temps t= 0
+    d = (r_train + vtrainkmh * tps) - (r_avion + v_avion * tps);
+    u = d / norm(d);
     
+    currentIntensity = i_son - norm(d) / 100 * A(fAvion) - 20 * log10(norm(d) /10);
+    
+    tps = tps + 1;
     % Iterate while the intensity is greater than or egal to 20 dB
     while currentIntensity >= 20
         
-        current_r_avion = r_avion + v_avion * tps;
-        current_r_train = r_train + vtrainkmh * tps;
-        % [delta_t1, pos2_after]
-        [delta_t1, pos2_after] = computeDeltaTPosition(current_r_avion, current_r_train, vtrainkmh);
-        %[delta_t2, pos1_after] = computeDeltaTPosition(current_r_train, current_r_avion, v_avion);
+        d = (r_train + vtrainkmh * tps) - (r_avion + v_avion * tps);
+        u = d / norm(d);
         
-        u = pos2_after - current_r_avion;
-        u = u / norm(u);
-        v1 = (c_son - dot(vtrainkmh, u));
-        currentFrequency = v1 / norm(v1) * fAvion;
-        d = norm(u) - 100; %each 100m
-        
-        currentIntensity = 160 - 20 * log10(d /10) - A(v1);
-        %currentIntensity
-        fTrain = [fTrain, currentFrequency];
-        Itrain = [Itrain, currentIntensity];
+        currentIntensity = i_son - norm(d) / 100 * A(fAvion) - 20 * log10(norm(d) /10);
+    
+        if currentIntensity >= 0
+            Itrain(t) = currentIntensity;
+            currentFrequency = fAvion * (c_son - dot(v_train, u))/(c_son - dot(v_avion, u));
+        end
         % Each time, add delta_t to the current time
         tps = tps + 1;
         
