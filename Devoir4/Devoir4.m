@@ -8,8 +8,6 @@ function [tps fTrain Itrain] = Devoir4(vtrainkmh, fAvion)
     global i_son
     global r_train
     
-    %fTrain = [];
-   % Itrain = [];
     %%% Donnees sur l'avion
     v_avion = transpose(300 * [cos(pi/18) 0 sin(pi/18)]) / 3.6; %m/s
     r_avion = transpose([0 0 0]);
@@ -25,13 +23,14 @@ function [tps fTrain Itrain] = Devoir4(vtrainkmh, fAvion)
     c_son = (331.3 + 0.606 * phi); % m/s
     
     t = 0;
-    currentIntensity = i_son;
     
     % Calcul de l'intensite au au temps t= 0
     d = (r_train + v_train * t) - (r_avion + v_avion * t);
+    r_0 = norm(d);
     u_initial = d / norm(d);
     
-    currentIntensity = i_son - norm(d) / 1000 * A(fAvion);% - 20 * log10(norm(d) /10);
+   currentIntensity = i_son - norm(d) / 1000 * A(fAvion) - 20 * log10(norm(d) / r_0);
+  
     delta_t = 1;
     t = t + delta_t;
     % Iterate while the intensity is greater than or egal to 20 dB
@@ -40,7 +39,9 @@ function [tps fTrain Itrain] = Devoir4(vtrainkmh, fAvion)
         d = (r_train + v_train * t) - (r_avion + v_avion * t);
         u = d / norm(d);
         
-        currentIntensity = i_son - norm(d) / 1000 * A(fAvion); % - 20 * log10(norm(d) /10);
+        currentIntensity = i_son - norm(d) / 1000 * A(fAvion) - 20 * log10(norm(d) / r_0);
+  
+        %currentIntensity = i_son - (norm(d) - 100) / 1000 * A(fAvion) - 20 * log10(norm(d) /100);
         %currentIntensity
         if currentIntensity >= 20
             Itrain(t) = currentIntensity;
@@ -54,7 +55,6 @@ function [tps fTrain Itrain] = Devoir4(vtrainkmh, fAvion)
     q_initial = [transpose(r_train); transpose(r_avion)];
     d = pdist(q_initial, 'euclidean');
     tps = d / (c_son - dot(v_train, u_initial));
-
 end
 
 %% Coeficient de viscosite
