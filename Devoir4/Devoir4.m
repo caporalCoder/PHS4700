@@ -40,8 +40,8 @@ function [tps fTrain Itrain] = Devoir4(vtrainkmh, fAvion)
         d = (r_train + vtrainkmh * t) - (r_avion + v_avion * t);
         u = d / norm(d);
         
-        currentIntensity = i_son - norm(d) / 1000 * A(fAvion) - 20 * log10(norm(d) /10);
-        currentIntensity
+        currentIntensity = i_son - norm(d) / 1000 * A(fAvion); % - 20 * log10(norm(d) /10);
+        %currentIntensity
         if currentIntensity >= 20
             Itrain(t) = currentIntensity;
             currentFrequency = fAvion * (c_son - dot(v_train, u))/(c_son - dot(v_avion, u));
@@ -50,7 +50,7 @@ function [tps fTrain Itrain] = Devoir4(vtrainkmh, fAvion)
         % Each time, add delta_t to the current time
         t = t + delta_t;
     end
-    disp("end");
+    %disp("end");
     q_initial = [transpose(r_train); transpose(r_avion)];
     d = pdist(q_initial, 'euclidean');
     tps = d / (c_son - dot(v_train, u_initial));
