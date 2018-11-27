@@ -27,6 +27,8 @@ for isimulation=1:NSimulations
   [tps ftrain Itrain]=Devoir4(vtrain(:,isimulation),favion(isimulation));
   ifirst=int8((tps+0.5)*tfac)+1;
   nstep=length(ftrain);
+  %ifirst
+  %nstep
   plot([0:nstep-1]/tfac,ftrain(:),'k-',[0 nstep-1]/tfac,[favion(isimulation) favion(isimulation)],'r-');
   xlabel('t (s)');
   ylabel('\nu (Hz)');
@@ -36,8 +38,8 @@ for isimulation=1:NSimulations
   ylabel('I (dB)');
   print('-depsc2',FileNamesI{isimulation})
   %fprintf('%4.0f  &  %5.0f  &  %8.2f \\\\ \n', isimulation, tps, ftrain(ifirst));
-  fprintf(' %4.0f  &  %5.0f &  %8.2f &  %8.2f &  %5.0f &  %8.2f &  %8.2f  \\\\ \n',isimulation,tps,ftrain(1),Itrain(1),(nstep-1)/tfac,ftrain(nstep),Itrain(nstep));
-  %fprintf(' %4.0f  &  %5.0f &  %8.2f &  %8.2f &  %5.0f &  %8.2f &  %8.2f  \\\\ \n',isimulation,tps,ftrain(ifirst),Itrain(ifirst),(nstep-1)/tfac,ftrain(nstep),Itrain(nstep));
+  %fprintf(' %4.0f  &  %5.0f &  %8.2f &  %8.2f &  %5.0f &  %8.2f &  %8.2f  \\\\ \n',isimulation,tps,ftrain(1),Itrain(1),(nstep-1)/tfac,ftrain(nstep),Itrain(nstep));
+  fprintf(' %4.0f  &  %5.0f &  %8.2f &  %8.2f &  %5.0f &  %8.2f &  %8.2f  \\\\ \n',isimulation,tps,ftrain(ifirst),Itrain(ifirst),(nstep-1)/tfac,ftrain(nstep),Itrain(nstep));
 end;
 fprintf('\\hline \n \\end{tabular}  \\end{center} \\end{table} \n \n \n');
 

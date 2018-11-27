@@ -1,13 +1,15 @@
 %%% Devoir 4
 
 %% Function principal  du devoir 
-function [tps, fTrain, Itrain] = Devoir4(vtrainkmh, fAvion)
+function [tps fTrain Itrain] = Devoir4(vtrainkmh, fAvion)
     global c_son
     global v_avion
     global r_avion
     global i_son
     global r_train
     
+    %fTrain = [];
+   % Itrain = [];
     %%% Donnees sur l'avion
     v_avion = transpose(300 * [cos(pi/18) 0 sin(pi/18)]) / 3.6; %m/s
     r_avion = transpose([0 0 0]);
@@ -22,34 +24,37 @@ function [tps, fTrain, Itrain] = Devoir4(vtrainkmh, fAvion)
 
     c_son = (331.3 + 0.606 * phi); % m/s
     
-    tps = 0;
+    t = 0;
     currentIntensity = i_son;
     
     % Calcul de l'intensite au au temps t= 0
-    d = (r_train + vtrainkmh * tps) - (r_avion + v_avion * tps);
-    u = d / norm(d);
+    d = (r_train + vtrainkmh * t) - (r_avion + v_avion * t);
+    u_initial = d / norm(d);
     
-    currentIntensity = i_son - norm(d) / 100 * A(fAvion) - 20 * log10(norm(d) /10);
-    
-    tps = tps + 1;
+    currentIntensity = i_son - norm(d) / 1000 * A(fAvion);% - 20 * log10(norm(d) /10);
+    delta_t = 1;
+    t = t + delta_t;
     % Iterate while the intensity is greater than or egal to 20 dB
     while currentIntensity >= 20
         
-        d = (r_train + vtrainkmh * tps) - (r_avion + v_avion * tps);
+        d = (r_train + vtrainkmh * t) - (r_avion + v_avion * t);
         u = d / norm(d);
         
-        currentIntensity = i_son - norm(d) / 100 * A(fAvion) - 20 * log10(norm(d) /10);
-    
-        if currentIntensity >= 0
+        currentIntensity = i_son - norm(d) / 1000 * A(fAvion) - 20 * log10(norm(d) /10);
+        currentIntensity
+        if currentIntensity >= 20
             Itrain(t) = currentIntensity;
             currentFrequency = fAvion * (c_son - dot(v_train, u))/(c_son - dot(v_avion, u));
+            fTrain(t) = currentFrequency;
         end
         % Each time, add delta_t to the current time
-        tps = tps + 1;
-        
+        t = t + delta_t;
     end
-    tps = tps - 2;
-    
+    disp("end");
+    q_initial = [transpose(r_train); transpose(r_avion)];
+    d = pdist(q_initial, 'euclidean');
+    tps = d / (c_son - dot(v_train, u_initial));
+
 end
 
 %% Coeficient de viscosite
