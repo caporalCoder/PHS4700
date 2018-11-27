@@ -28,7 +28,7 @@ function [tps fTrain Itrain] = Devoir4(vtrainkmh, fAvion)
     currentIntensity = i_son;
     
     % Calcul de l'intensite au au temps t= 0
-    d = (r_train + vtrainkmh * t) - (r_avion + v_avion * t);
+    d = (r_train + v_train * t) - (r_avion + v_avion * t);
     u_initial = d / norm(d);
     
     currentIntensity = i_son - norm(d) / 1000 * A(fAvion);% - 20 * log10(norm(d) /10);
@@ -37,7 +37,7 @@ function [tps fTrain Itrain] = Devoir4(vtrainkmh, fAvion)
     % Iterate while the intensity is greater than or egal to 20 dB
     while currentIntensity >= 20
         
-        d = (r_train + vtrainkmh * t) - (r_avion + v_avion * t);
+        d = (r_train + v_train * t) - (r_avion + v_avion * t);
         u = d / norm(d);
         
         currentIntensity = i_son - norm(d) / 1000 * A(fAvion); % - 20 * log10(norm(d) /10);
